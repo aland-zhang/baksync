@@ -67,16 +67,6 @@ setarr bakvols \
 	var \
 ;
 
-# associative arrays are recognized as indexed ones unless
-# we pre-declare them
-# TODO: is this under control of a setting in bash?
-# "foo['bar']=baz" being seen as indexed assignment seems
-# silly, should be easy for parser to infer associative usage
-#
-declare -A excludes
-for a in ${bakvols[@]}; do
-	declare -A excludes[$a]; done
-
 #
 # we store per-lv exclude pattern lists in associative arrays,
 # with newlines delimiting each pattern
@@ -88,6 +78,7 @@ for a in ${bakvols[@]}; do
 ###
 
 #
+declare -A \
 excludes['home']="
 	$HOME/.cache/
 	$HOME/.config/chromium/
@@ -109,7 +100,7 @@ declare -a excl=(
 	{,/lib/lxc/\*/rootfs}/tmp/mkinitramfs\*
 )
 IFS=$'\n'
-declare -A excludes
+declare -A \
 excludes['var']="${excl[*]}"
 unset IFS
 
