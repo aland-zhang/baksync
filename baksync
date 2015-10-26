@@ -52,10 +52,6 @@ setenv sshcmd		'ssh'
 setenv srcvg		baksrv
 setenv snaplv		baksnap
 setenv bakroot		/srv/bak/rsyncs
-
-#
-setenv vgdev		/dev/$srcvg
-setenv snapvol		$vgdev/$snaplv
 setenv snapmnt		/var/tmp/snapmnt
 
 # back up these volume groups in $srcvg
@@ -172,6 +168,11 @@ main ()
 	for a in ${bakvols[@]}; do
 		test -v excludes[$a] ||
 			declare -A excludes[$a]=''; done
+
+	# set volume paths only now, after overrides consulted
+	#
+	setenv vgdev    /dev/$srcvg
+	setenv snapvol  $vgdev/$snaplv
 
 	#
 	set -ue
