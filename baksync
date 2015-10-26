@@ -1,0 +1,182 @@
+#!/bin/bash
+#
+# baksync
+#   synchronize local lvm-backed filesystems with a remote mirror atomically
+#
+# args:
+#   - $1 can optionally be '-n' to give to rsync (test mode, do nothing)
+#   - rest of args are volume names to backup (use hardcoded list if none)
+#
+# deps:
+#   - rsync present on local and remote
+#   - ssh daemon on remote, allowing root access
+#   - local filesystems to backup are backed by lvm (for snapshots)
+#   - http://smemsh.net/src/libsh/ (see include and require)
+#
+# todo:
+#   - https://lincolnloop.com/blog/detecting-file-moves-renames-rsync/ see
+#     comments, maybe make a /.sums/ dir for all backed up filesystems with
+#     flat hard link named with md5-based names, this can also be used to
+#     detect dupes (think photos), use cron job to remove files therein with
+#     link count = 1 (meaning only our hard link is left)
+#     UPDATE: script written (mkhashlinks), currently in testing
+#   - allow specification of multiple vgs too, not just lvs
+#
+# note:
+#   - no plans to handle spaces in backup paths, exclude paths, mount points
+#
+# stat:
+#   - used in production by author
+#   - some site-local customizations may remain, but has rcfile
+#   - no known users, please notify author if used
+#
+# scott@smemsh.net
+# http://smemsh.net/src/baksync/
+# http://spdx.org/licenses/GPL-2.0.html
+#
+##############################################################################
+
+source ~/lib/sh/include
+require setarr setenv
+
+set -x
+set -e
+
+#
+# set defaults before rcfile overrides
+#
+
+setenv baksrv		localhost
+setenv sshcmd		'ssh'
+#setenv sshcmd		'ssh -l backups'
+
+#
+setenv srcvg		baksrv
+setenv snaplv		baksnap
+setenv bakroot		/srv/bak/rsyncs
+
+#
+setenv vgdev		/dev/$srcvg
+setenv snapvol		$vgdev/$snaplv
+setenv snapmnt		/var/tmp/snapmnt
+
+# back up these volume groups in $srcvg
+# (if any argv given, they replace these defaults)
+#
+setarr bakvols \
+	root \
+	home \
+	local \
+	var \
+;
+
+#
+# we store per-lv exclude pattern lists in associative arrays,
+# with newlines delimiting each pattern
+#
+# TODO: just use an rsync-syntax exclude file directly?  in
+# meantime each is given as a separate '--exclude=' to rsync
+#
+
+###
+
+#
+excludes['home']="
+	$HOME/.cache/
+	$HOME/.config/chromium/
+"
+
+###
+
+# we are unquoted here so we can do brace expansion, otherwise
+# we would just assign to the associative array directly.
+# note: when doing this, need to escape shell globbing chars
+# here so rsync gets them
+#
+# TODO maybe spaces are ok as rsync patterns, newlines unnecessary?
+# TODO don't newlines break it if they are embedded in the filename?
+# TODO we will just pass an rsync exclude file to make it easier
+#
+declare -a excl=(
+	{,/lib/lxc/\*/rootfs/var}/cache/
+	{,/lib/lxc/\*/rootfs}/tmp/mkinitramfs\*
+)
+IFS=$'\n'
+declare -A excludes
+excludes['var']="${excl[*]}"
+unset IFS
+
+###
+
+setarr rsyncargs \
+	-e "$sshcmd" \
+	-i \
+	-z \
+	-aHx \
+	--delete \
+	--delete-excluded \
+	--delete-after \
+	--partial \
+	--inplace \
+	--numeric-ids \
+;
+
+###
+
+snapsz=1G
+setarr snapargs \
+	--snapshot \
+	--name $snaplv \
+	--size $snapsz \
+;
+
+###
+
+#
+# rcfile overrides any hardcoded defaults we just established
+#
+test -e $rcfile &&
+	source ~/.baksyncrc
+
+##############################################################################
+
+parse_args ()
+{
+	declare -g testflag
+
+	if [[ $1 == '-n' ]]; then
+		rsyncargs+=('-n')$1; shift; fi;
+
+	echo -n ${1:-${bakvols[@]}}
+}
+
+main ()
+{
+	local vol
+
+	cd /
+	set -- $(parse_args "$@")
+	set -u
+
+	for vol
+	do
+		# often a path is given
+		# TODO: if slash, use findmnt to look up the volume
+		vol=${vol%/}
+		vol=${vol#/}
+
+		args=("${rsyncargs[@]}")
+		for x in ${excludes[$vol]}; do
+			args+=(--exclude=$x); done
+
+		lvcreate ${snapargs[@]} $vgdev/$vol
+		mount $snapvol $snapmnt
+		rsync "${args[@]}" $snapmnt/ $baksrv:$bakroot/$srcvg/$vol/
+		umount $snapmnt
+		lvremove --force $snapvol
+	done
+}
+
+##############################################################################
+
+main "$@"
