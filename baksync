@@ -37,8 +37,8 @@
 ##############################################################################
 
 source ~/lib/sh/include
-require setarr setenv
-require bomb
+include setenv
+include error
 
 #
 # set defaults before rcfile overrides
@@ -141,7 +141,9 @@ parse_args ()
 		rsyncargs+=('-n')$1; shift; fi;
 
 	if [[ $1 == -* ]]; then
-		bomb "only '-n' option available, aborting"; fi
+		warn "only '-n' option available, aborting"
+		return
+	fi
 
 	echo -n ${1:-${bakvols[@]}}
 }
@@ -153,11 +155,15 @@ main ()
 	cd /
 
 	# rcfile overrides hardcoded defaults at top
+	#
 	test -e $rcfile &&
 		source ~/.baksyncrc
 
-	# command line allows override lv list
-	set -- $(parse_args "$@")
+	# command line overrides both default and rcfile # specified,
+	# vols are in $@ afterwards either way (empty signals error)
+	#
+	if set -- $(parse_args "$@") && (($# == 0)); then
+		bomb "bad arg parse"; fi
 
 	#
 	set -ue
