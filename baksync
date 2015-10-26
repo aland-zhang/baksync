@@ -39,9 +39,6 @@
 source ~/lib/sh/include
 require setarr setenv
 
-set -x
-set -e
-
 #
 # set defaults before rcfile overrides
 #
@@ -69,6 +66,7 @@ setarr bakvols \
 	local \
 	var \
 ;
+for
 
 # associative arrays are recognized as indexed ones without
 # pre-declaring
@@ -166,7 +164,7 @@ main ()
 	set -- $(parse_args "$@")
 
 	#
-	set -u
+	set -ue
 
 	#
 	for vol
@@ -175,6 +173,7 @@ main ()
 		# TODO: if slash, use findmnt to look up the volume
 		vol=${vol%/}
 		vol=${vol#/}
+		declare -p vol
 
 		args=("${rsyncargs[@]}")
 		for x in ${excludes[$vol]}; do
@@ -190,4 +189,5 @@ main ()
 
 ##############################################################################
 
+set -x
 main "$@"
