@@ -132,12 +132,6 @@ setarr snapargs \
 
 ###
 
-#
-# rcfile overrides any hardcoded defaults we just established
-#
-test -e $rcfile &&
-	source ~/.baksyncrc
-
 ##############################################################################
 
 parse_args ()
@@ -155,9 +149,18 @@ main ()
 	local vol
 
 	cd /
+
+	# rcfile overrides hardcoded defaults at top
+	test -e $rcfile &&
+		source ~/.baksyncrc
+
+	# command line allows override lv list
 	set -- $(parse_args "$@")
+
+	#
 	set -u
 
+	#
 	for vol
 	do
 		# often a path is given
