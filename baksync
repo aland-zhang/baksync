@@ -70,6 +70,14 @@ setarr bakvols \
 	var \
 ;
 
+# associative arrays are recognized as indexed ones without
+# pre-declaring
+# TODO: is this under control of a setting in bash?
+# "foo['bar']=baz" being seen as indexed assignment seems
+# preposterous, easy for parser to infer associative context
+#
+declare -A excludes
+
 #
 # we store per-lv exclude pattern lists in associative arrays,
 # with newlines delimiting each pattern
