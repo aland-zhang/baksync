@@ -105,7 +105,6 @@ unset IFS
 ###
 
 setarr rsyncargs \
-	-e "$sshcmd" \
 	-i \
 	-z \
 	-aHx \
@@ -170,13 +169,14 @@ main ()
 		test -v excludes[$a] ||
 			declare -A excludes[$a]=''; done
 
-	# set volume paths only now, after overrides consulted
-	#
-	setenv vgdev    /dev/$srcvg
-	setenv snapvol  $vgdev/$snaplv
-
 	#
 	set -ue
+
+	# set volume paths and ssh command only after overrides consulted
+	#
+	setenv vgdev        /dev/$srcvg
+	setenv snapvol      $vgdev/$snaplv
+	addarr rsyncargs    '-e' "$sshcmd"
 
 	#
 	for vol
