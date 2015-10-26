@@ -53,6 +53,7 @@ setenv srcvg		baksrv
 setenv snaplv		baksnap
 setenv bakroot		/srv/bak/rsyncs
 setenv snapmnt		/var/tmp/snapmnt
+setenv rcfile		~/.baksyncrc
 
 # back up these volume groups in $srcvg
 # (if any argv given, they replace these defaults)
