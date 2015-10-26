@@ -165,6 +165,14 @@ main ()
 	if set -- $(parse_args "$@") && (($# == 0)); then
 		bomb "bad arg parse"; fi
 
+	# all the exclude vars have to be initialized if nothing set
+	# them, otherwise 'set -e' causes problems later
+	#
+	declare -A excludes
+	for a in ${bakvols[@]}; do
+		test -v excludes[$a] ||
+			declare -A excludes[$a]=''; done
+
 	#
 	set -ue
 
