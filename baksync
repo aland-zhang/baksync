@@ -54,6 +54,7 @@ setenv snaplv		baksnap
 setenv bakroot		/srv/bak/rsyncs
 setenv snapmnt		/var/tmp/snapmnt
 setenv rcfile		~/.baksyncrc
+setenv snapsz		1G
 
 # back up these volume groups in $srcvg
 # (if any argv given, they replace these defaults)
@@ -118,15 +119,6 @@ setarr rsyncargs \
 
 ###
 
-snapsz=1G
-setarr snapargs \
-	--snapshot \
-	--name $snaplv \
-	--size $snapsz \
-;
-
-###
-
 ##############################################################################
 
 parse_args ()
@@ -176,7 +168,9 @@ main ()
 	#
 	setenv vgdev        /dev/$srcvg
 	setenv snapvol      $vgdev/$snaplv
-	addarr rsyncargs    '-e' "$sshcmd"
+	addarr rsyncargs    "--rsh=$sshcmd"
+	addarr snapargs     '--name' "$snaplv"
+	addarr snapargs     '--size' "$snapsz"
 
 	#
 	for vol
@@ -191,7 +185,7 @@ main ()
 		for x in ${excludes[$vol]}; do
 			args+=(--exclude=$x); done
 
-		lvcreate ${snapargs[@]} $vgdev/$vol
+		lvcreate --snapshot "${snapargs[@]}" $vgdev/$vol
 		mount $snapvol $snapmnt
 		rsync "${args[@]}" $snapmnt/ $baksrv:$bakroot/$srcvg/$vol/
 		umount $snapmnt
