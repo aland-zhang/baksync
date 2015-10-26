@@ -38,6 +38,7 @@
 
 source ~/lib/sh/include
 require setarr setenv
+require bomb
 
 #
 # set defaults before rcfile overrides
@@ -138,6 +139,9 @@ parse_args ()
 
 	if [[ $1 == '-n' ]]; then
 		rsyncargs+=('-n')$1; shift; fi;
+
+	if [[ $1 == -* ]]; then
+		bomb "only '-n' option available, aborting"; fi
 
 	echo -n ${1:-${bakvols[@]}}
 }
