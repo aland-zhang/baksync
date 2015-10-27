@@ -95,10 +95,15 @@ parse_args ()
 
 	if [[ $1 == -* ]]; then
 		warn "only '-n' option available, aborting"
+		false
 		return
 	fi
 
-	echo -n ${1:-${bakvols[@]}}
+	# command line specified volumes replace all
+	# previously defined
+	#
+	if (($#)); then
+		setarr bakvols "$@"; fi
 }
 
 # we store per-lv exclude pattern lists in associative array
@@ -127,17 +132,18 @@ add_excludes ()
 
 initvars ()
 {
+	local a
+
 	# rcfile overrides hardcoded defaults at top
 	#
 	if test -e $rcfile; then
 		source $rcfile; fi
 
-	# command line overrides both default and rcfile # specified,
-	# vols are in $@ afterwards either way (empty signals error)
+	# command line overrides both default and rcfile specified
 	#
-	if set -- $(parse_args "$@") && (($# == 0)); then
-		bomb "bad arg parse"; fi
-
+	parse_args "$@" ||
+		bomb "bad arg parse"
+	
 	# all the dictionary entries have to be initialized
 	# (set, but empty) if nothing set them, otherwise 'set -e'
 	# causes problems later
@@ -165,7 +171,7 @@ main ()
 	initvars "$@"
 	set -ue
 
-	for vol
+	for vol in ${bakvols[@]}
 	do
 		# often a path is given
 		# TODO: if slash, use findmnt to look up the volume
