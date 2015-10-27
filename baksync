@@ -23,6 +23,8 @@
 #   - allow specification of multiple vgs too, not just lvs
 #
 # note:
+#   - set rsync path excludes per-lv in $rcfile using add_excludes()
+#   - override any other configuration variables therein as well
 #   - no plans to handle spaces in backup paths, exclude paths, mount points
 #
 # stat:
@@ -40,15 +42,11 @@ source ~/lib/sh/include
 include setenv
 include error
 
-#
 # set defaults before rcfile overrides
 #
-
 setenv baksrv		localhost
 setenv sshcmd		'ssh'
 #setenv sshcmd		'ssh -l backups'
-
-#
 setenv srcvg		baksrv
 setenv snaplv		baksnap
 setenv bakroot		/srv/bak/rsyncs
@@ -56,7 +54,7 @@ setenv snapmnt		/var/tmp/snapmnt
 setenv rcfile		~/.baksyncrc
 setenv snapsz		1G
 
-# back up these volume groups in $srcvg
+# lvnames to back up in $srcvg volume group
 # (if any argv given, they replace these defaults)
 #
 setarr bakvols \
@@ -66,45 +64,9 @@ setarr bakvols \
 	var \
 ;
 
+# default arguments for rsync
+# (append to, or replace in rcfile if desired)
 #
-# we store per-lv exclude pattern lists in associative arrays,
-# with newlines delimiting each pattern
-#
-# TODO: just use an rsync-syntax exclude file directly?  in
-# meantime each is given as a separate '--exclude=' to rsync
-#
-
-###
-
-#
-declare -A \
-excludes['home']="
-	$HOME/.cache/
-	$HOME/.config/chromium/
-"
-
-###
-
-# we are unquoted here so we can do brace expansion, otherwise
-# we would just assign to the associative array directly.
-# note: when doing this, need to escape shell globbing chars
-# here so rsync gets them
-#
-# TODO maybe spaces are ok as rsync patterns, newlines unnecessary?
-# TODO don't newlines break it if they are embedded in the filename?
-# TODO we will just pass an rsync exclude file to make it easier
-#
-declare -a excl=(
-	{,/lib/lxc/\*/rootfs/var}/cache/
-	{,/lib/lxc/\*/rootfs}/tmp/mkinitramfs\*
-)
-IFS=$'\n'
-declare -A \
-excludes['var']="${excl[*]}"
-unset IFS
-
-###
-
 setarr rsyncargs \
 	-i \
 	-z \
@@ -116,8 +78,6 @@ setarr rsyncargs \
 	--inplace \
 	--numeric-ids \
 ;
-
-###
 
 ##############################################################################
 
@@ -135,6 +95,32 @@ parse_args ()
 
 	echo -n ${1:-${bakvols[@]}}
 }
+
+# we store per-lv exclude pattern lists in associative array
+# $excludes[] indexed by volume, newlines delimiting each pattern.
+# this func appends one or more exclude strings, or creates if dne
+#
+# TODO: maybe spaces are ok as rsync patterns, newlines unnecessary?
+# TODO: don't newlines break it if they are embedded in the filename?
+# TODO: just use an rsync-syntax exclude file directly?  in
+#       meantime each is given as a separate '--exclude=' to rsync
+#
+add_excludes ()
+{
+	local i
+	local key=${1:?}; shift
+	local val="${excludes[$key]}" # append if previous value
+
+	while (($#)); do
+		val+=$'\n'
+		val+="$1"
+		shift
+	done
+
+	excludes[$key]="$val"
+}
+
+##############################################################################
 
 main ()
 {
@@ -161,7 +147,8 @@ main ()
 		test -v excludes[$a] ||
 			declare -A excludes[$a]=''; done
 
-	#
+	###
+
 	set -ue
 
 	# set volume paths and ssh command only after overrides consulted
