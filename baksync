@@ -125,14 +125,8 @@ add_excludes ()
 	excludes[$key]="$val"
 }
 
-##############################################################################
-
-main ()
+initvars ()
 {
-	local vol
-
-	cd /
-
 	# rcfile overrides hardcoded defaults at top
 	#
 	if test -e $rcfile; then
@@ -150,11 +144,7 @@ main ()
 	#
 	for a in ${bakvols[@]}; do
 		test -v "excludes[$a]" ||
-			declare -A excludes[$a]=''; done
-
-	###
-
-	set -ue
+			excludes[$a]=''; done
 
 	# set volume paths and ssh command only after overrides consulted
 	#
@@ -163,8 +153,18 @@ main ()
 	addarr rsyncargs    "--rsh=$sshcmd"
 	addarr snapargs     '--name' "$snaplv"
 	addarr snapargs     '--size' "$snapsz"
+}
 
-	#
+##############################################################################
+
+main ()
+{
+	local vol
+
+	cd /
+	initvars "$@"
+	set -ue
+
 	for vol
 	do
 		# often a path is given
