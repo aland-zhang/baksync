@@ -182,11 +182,13 @@ main ()
 		for x in ${excludes[$vol]}; do
 			args+=(--exclude=$x); done
 
+		echo "$vol: start"
 		lvcreate --snapshot "${snapargs[@]}" $vgdev/$vol
 		mount $snapvol $snapmnt
 		rsync "${args[@]}" $snapmnt/ $baksrv:$bakroot/$srcvg/$vol/
 		umount $snapmnt
 		lvremove --force $snapvol
+		echo
 	done
 }
 
