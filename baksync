@@ -149,7 +149,7 @@ main ()
 	# causes problems later
 	#
 	for a in ${bakvols[@]}; do
-		test -v excludes[$a] ||
+		test -v "excludes[$a]" ||
 			declare -A excludes[$a]=''; done
 
 	###
