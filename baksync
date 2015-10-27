@@ -132,7 +132,7 @@ add_excludes ()
 
 initvars ()
 {
-	local a
+	local vol
 
 	# rcfile overrides hardcoded defaults at top
 	#
@@ -148,9 +148,9 @@ initvars ()
 	# (set, but empty) if nothing set them, otherwise 'set -e'
 	# causes problems later
 	#
-	for a in ${bakvols[@]}; do
-		test -v "excludes[$a]" ||
-			excludes[$a]=''; done
+	for vol in ${bakvols[@]}; do
+		test -v "excludes[$vol]" ||
+			excludes[$vol]=''; done
 
 	# set volume paths and ssh command only after overrides consulted
 	#
