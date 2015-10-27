@@ -166,7 +166,6 @@ main ()
 		# TODO: if slash, use findmnt to look up the volume
 		vol=${vol%/}
 		vol=${vol#/}
-		declare -p vol
 
 		args=("${rsyncargs[@]}")
 		for x in ${excludes[$vol]}; do
@@ -182,5 +181,4 @@ main ()
 
 ##############################################################################
 
-set -x
 main "$@"
