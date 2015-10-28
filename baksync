@@ -161,6 +161,22 @@ initvars ()
 	addarr snapargs     '--size' "$snapsz"
 }
 
+volume_start_print ()
+{
+	declare -g firstrun
+	declare +i vol=${1:?}
+
+	# so we have a blank line between runs but not before
+	# the first one, and not after the last one
+	#
+	if ! ((firstrun)); then
+		echo; fi
+
+	echo "syncing $vol..."
+}
+
+volume_end_print () { :; }
+
 ##############################################################################
 
 main ()
@@ -182,13 +198,15 @@ main ()
 		for x in ${excludes[$vol]}; do
 			args+=(--exclude=$x); done
 
-		echo "$vol: start"
+		volume_start_print $vol
+
 		lvcreate --snapshot "${snapargs[@]}" $vgdev/$vol
 		mount $snapvol $snapmnt
 		rsync "${args[@]}" $snapmnt/ $baksrv:$bakroot/$srcvg/$vol/
 		umount $snapmnt
 		lvremove --force $snapvol
-		echo
+
+		volume_end_print $vol
 	done
 }
 
