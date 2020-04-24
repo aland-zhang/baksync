@@ -199,16 +199,18 @@ main ()
 		# TODO: if slash, use findmnt to look up the volume
 		vol=${vol%/}
 		vol=${vol#/}
+		destpath=$bakroot/$srcvg/$vol
 
 		args=("${rsyncargs[@]}")
 		for x in ${excludes[$vol]}; do
 			args+=(--exclude=$x); done
 
 		volume_start_print $vol
-
+		$sshcmd $baksrv test -d $destpath ||
+			bomb "bakpath $destpath dne on $baksrv"
 		lvcreate --snapshot "${snapargs[@]}" $vgdev/$vol
 		mount $snapvol $snapmnt
-		rsync "${args[@]}" $snapmnt/ $baksrv:$bakroot/$srcvg/$vol/
+		rsync "${args[@]}" $snapmnt/ $baksrv:$destpath/
 		umount $snapmnt
 		lvremove --force $snapvol
 
