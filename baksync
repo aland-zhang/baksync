@@ -210,7 +210,7 @@ main ()
 		$sshcmd $baksrv test -d $destpath ||
 			bomb "bakpath $destpath dne on $baksrv"
 		lvcreate --snapshot "${snapargs[@]}" $vgdev/$vol
-		mount $snapvol $snapmnt
+		mount -o ro $snapvol $snapmnt
 		rsync "${args[@]}" $snapmnt/ $baksrv:$destpath/
 		umount $snapmnt
 		lvremove --force $snapvol
